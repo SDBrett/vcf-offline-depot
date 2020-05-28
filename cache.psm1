@@ -56,6 +56,7 @@ function search-cache {
   }
 
   foreach ($cachedManifest in $cachedManifests){
+
     if ($null -ne $cachedManifest.productVersion){    
       $match = ($cachedManifest.productVersion.indexOf($vcfProductVersion) -gt -1)
     }else{
@@ -64,10 +65,12 @@ function search-cache {
     
     if ($match -ne $false -and $severity -ne ""){
       $match = ($cachedManifest.severity -eq $severity)
+      
     }
 
     if ($match -ne $false){
       $match = contains-element -bundleElements $cachedManifest.bundleElements -bundleSoftwareType $bundleSoftwareType -bundleElementVersion $bundleElementVersion -imageType $imageType
+
     }
     if ($true -eq $match){
       $matchedResults += $cachedManifest
@@ -77,4 +80,71 @@ function search-cache {
   return $matchedResults
 }
 
-Export-ModuleMember -Function 'search-cache'
+function remove-duplicates {
+  param (
+    $array
+  )
+  $newArray = @()
+
+  foreach ($item in $array){
+    if ($newArray.IndexOf($item) -lt -0){
+      $newArray += $item
+    }
+  }
+  return $newArray
+}
+
+function get-UniqueBundleElementNames {
+  param (
+    $bundleElements
+  )
+
+  $bundleNames = @()
+  foreach ($bundle in $bundleElements){
+    $bundleNames += $bundle.bundleSoftwareType
+  }  
+  
+  return remove-duplicates($bundleNames)
+}
+
+function get-bundleSoftwareTypes {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory=$true)]
+    [string]$cacheFile,
+    [string]$vcfProductVersion
+  )
+  
+
+  if (!(Test-Path $cacheFile)) 
+  {
+    
+    Write-Error "Cache file not found"
+    exit
+  }
+
+  $bundleElements = @()
+  $cachedManifests = Get-Content -Path $cacheFile | ConvertFrom-Json
+  if (!($cachedManifests -is [array]))
+  {
+    $cachedManifests = @($cachedManifests)
+  }
+
+ 
+
+  foreach ($cachedManifest in $cachedManifests){
+    if ($null -ne $cachedManifest.productVersion){    
+      
+      if ($cachedManifest.productVersion.indexOf($vcfProductVersion) -gt -1){
+       
+        foreach ($bundle in $cachedManifest.bundleElements){
+          
+          $bundleElements += $bundle
+        }
+      }
+    }
+  }
+  return get-UniqueBundleElementNames($bundleElements)
+}
+
+Export-ModuleMember -Function 'search-cache', get-bundleSoftwareTypes
