@@ -2,7 +2,6 @@ function contains-element {
   param (
     $bundleElements,
     $bundleSoftwareType,
-    $bundleElementVersion,
     $imageType
   )
 
@@ -12,10 +11,6 @@ function contains-element {
 
     $match = ($bundleElement.bundleSoftwareType -eq $bundleSoftwareType)
 
-    if ($match -ne $false -and $bundleElementVersion -ne "" ){
-      $match = ($bundleElement.bundleElementVersion.IndexOf($bundleElementVersion) -gt -1)
-    }
-  
     if ($match -ne $false -and $imageType -ne ""){
       $match = ($bundleElement.imageType -eq $imageType)
     }
@@ -35,9 +30,9 @@ function search-cache {
     [string]$cacheFile,
     [string]$vcfProductVersion,
     [string]$severity,
-    [string]$bundleElementVersion,
     [string]$bundleSoftwareType,
-    [string]$imageType
+    [string]$imageType,
+    [switch]$searchBundleElement
   )
   
 
@@ -68,17 +63,18 @@ function search-cache {
       
     }
 
-    if ($match -ne $false){
-      $match = contains-element -bundleElements $cachedManifest.bundleElements -bundleSoftwareType $bundleSoftwareType -bundleElementVersion $bundleElementVersion -imageType $imageType
-
+    
+    if ($match -ne $false -and $searchElement){
+      $match = contains-element -bundleElements $cachedManifest.bundleElements -bundleSoftwareType $bundleSoftwareType -imageType $imageType
     }
-    if ($true -eq $match){
+    if ($match -eq $true){
       $matchedResults += $cachedManifest
     }
   }
 
   return $matchedResults
 }
+Export-ModuleMember -Function search-cache
 
 function remove-duplicates {
   param (
@@ -144,7 +140,54 @@ function get-bundleSoftwareTypes {
       }
     }
   }
+
   return get-UniqueBundleElementNames($bundleElements)
 }
 
-Export-ModuleMember -Function 'search-cache', get-bundleSoftwareTypes
+Export-ModuleMember get-bundleSoftwareTypes
+
+function get-DownloadUrls {
+  param (
+    [parameter(Position=1, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+    [psobject[]]$bundles
+  )
+  
+  BEGIN{}
+  PROCESS{
+    $manifestUrlPrefix = "https://depot.vmware.com/PROD2/evo/vmw/manifests/"
+    $bundleUrlPrefix = "https://depot.vmware.com/PROD2/evo/vmw/bundles/"
+
+    
+    $bundleNumber = $bundles.tarfile.Split(".")[0]
+    
+    $manifestUrl = $manifestUrlPrefix + $bundleNumber + ".manifest"
+    $sigUrl = $manifestUrl + ".sig"
+    $bundleUrl = $bundleUrlPrefix + $bundleNumber + ".tar"
+
+    #$bundleURL not returned for testing only download functionality
+    return @($manifestUrl, $sigUrl)#, $bundleUrl)
+    
+  }
+  END{}
+}
+Export-ModuleMember get-bundleSoftwareTypes
+
+function download-bundle {
+  param (
+    [parameter(Position=1, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
+    [psobject[]]$bundles,
+    [System.Management.Automation.PSCredential]
+    $Credential = $(Get-Credential -Message "Enter your my.vmware.com credentials" ),
+    [string]$destination
+  )
+    
+  BEGIN{}
+  PROCESS{
+    $urls = $bundles | get-DownloadUrls
+    foreach($url in $urls){
+      write-host $url
+      Start-BitsTransfer -Credential $Credential -TransferType Download -Authentication Basic -Destination $destination -Source $url
+    }
+  }
+  END{}
+}
