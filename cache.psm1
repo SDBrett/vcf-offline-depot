@@ -1,21 +1,21 @@
-function contains-element {
+function Test-ContainsElement {
   param (
-    $bundleElements,
-    $bundleSoftwareType,
-    $imageType
+    $BundleElements,
+    $BundleSoftwareType,
+    $ImageType
   )
 
-  $match = $false
+  $Match = $false
 
-  foreach ($bundleElement in $bundleElements){
+  foreach ($BundleElement in $BundleElements){
 
-    $match = ($bundleElement.bundleSoftwareType -eq $bundleSoftwareType)
+    $Match = ($BundleElement.bundleSoftwareType -eq $BundleSoftwareType)
 
-    if ($match -ne $false -and $imageType -ne ""){
-      $match = ($bundleElement.imageType -eq $imageType)
+    if ($Match -ne $false -and $ImageType -ne ""){
+      $Match = ($BundleElement.imageType -eq $ImageType)
     }
 
-    if ($match -eq $true){
+    if ($Match -eq $true){
       return $true
     }
   }
@@ -23,162 +23,163 @@ function contains-element {
 }
 
 
-function search-cache {
+function Search-Cache {
   [CmdletBinding()]
   param(
     [Parameter(Mandatory=$true)]
-    [string]$cacheFile,
-    [string]$vcfProductVersion,
+    [string]$CacheFile,
+    [string]$VcfProductVersion,
     [string]$severity,
-    [string]$bundleSoftwareType,
-    [string]$imageType,
+    [string]$BundleSoftwareType,
+    [string]$ImageType,
     [switch]$searchBundleElement
   )
   
 
-  if (!(Test-Path $cacheFile)) 
+  if (!(Test-Path $CacheFile)) 
   {
     
     Write-Error "Cache file not found"
     exit
   }
 
-  $matchedResults = @()
-  $cachedManifests = Get-Content -Path $cacheFile | ConvertFrom-Json
-  if (!($cachedManifests -is [array]))
+  $MatchedResults = @()
+  $CachedManifests = Get-Content -Path $CacheFile | ConvertFrom-Json
+  if (!($CachedManifests -is [array]))
   {
-    $cachedManifests = @($cachedManifests)
+    $CachedManifests = @($CachedManifests)
   }
 
-  foreach ($cachedManifest in $cachedManifests){
+  foreach ($CachedManifest in $CachedManifests){
 
-    if ($null -ne $cachedManifest.productVersion){    
-      $match = ($cachedManifest.productVersion.indexOf($vcfProductVersion) -gt -1)
+    if ($Null -ne $CachedManifest.productVersion){    
+      $Match = ($CachedManifest.productVersion.indexOf($VcfProductVersion) -gt -1)
     }else{
-      $match = $false
+      $Match = $false
     }
     
-    if ($match -ne $false -and $severity -ne ""){
-      $match = ($cachedManifest.severity -eq $severity)
+    if ($Match -ne $false -and $severity -ne ""){
+      $Match = ($CachedManifest.severity -eq $severity)
       
     }
 
     
-    if ($match -ne $false -and $searchElement){
-      $match = contains-element -bundleElements $cachedManifest.bundleElements -bundleSoftwareType $bundleSoftwareType -imageType $imageType
+    if ($Match -ne $false -and $searchElement){
+      $Match = Test-ContainsElement -bundleElements $CachedManifest.bundleElements -bundleSoftwareType $BundleSoftwareType -imageType $ImageType
     }
-    if ($match -eq $true){
-      $matchedResults += $cachedManifest
-    }
-  }
-
-  return $matchedResults
-}
-Export-ModuleMember -Function search-cache
-
-function remove-duplicates {
-  param (
-    $array
-  )
-  $newArray = @()
-
-  foreach ($item in $array){
-    if ($newArray.IndexOf($item) -lt -0){
-      $newArray += $item
+    if ($Match -eq $true){
+      $MatchedResults += $CachedManifest
     }
   }
-  return $newArray
+
+  return $MatchedResults
+}
+Export-ModuleMember -Function Search-Cache
+
+
+function Remove-Duplicates {
+  param (
+    $Array
+  )
+  $NewArray = @()
+
+  foreach ($Item in $Array){
+    if ($NewArray.IndexOf($Item) -lt -0){
+      $NewArray += $Item
+    }
+  }
+  return $NewArray
 }
 
-function get-UniqueBundleElementNames {
+
+function Get-UniqueBundleElementNames {
   param (
-    $bundleElements
+    $BundleElements
   )
 
-  $bundleNames = @()
-  foreach ($bundle in $bundleElements){
-    $bundleNames += $bundle.bundleSoftwareType
+  $BundleNames = @()
+  foreach ($Bundle in $BundleElements){
+    $BundleNames += $Bundle.bundleSoftwareType
   }  
   
-  return remove-duplicates($bundleNames)
+  return Remove-Duplicates($BundleNames)
 }
 
-function get-bundleSoftwareTypes {
+
+function Get-BundleSoftwareTypes {
   [CmdletBinding()]
   param(
     [Parameter(Mandatory=$true)]
-    [string]$cacheFile,
-    [string]$vcfProductVersion
+    [string]$CacheFile,
+    [string]$VcfProductVersion
   )
   
 
-  if (!(Test-Path $cacheFile)) 
+  if (!(Test-Path $CacheFile)) 
   {
-    
     Write-Error "Cache file not found"
     exit
   }
 
-  $bundleElements = @()
-  $cachedManifests = Get-Content -Path $cacheFile | ConvertFrom-Json
-  if (!($cachedManifests -is [array]))
+  $BundleElements = @()
+  $CachedManifests = Get-Content -Path $CacheFile | ConvertFrom-Json
+  if (!($CachedManifests -is [array]))
   {
-    $cachedManifests = @($cachedManifests)
+    $CachedManifests = @($CachedManifests)
   }
 
- 
-
-  foreach ($cachedManifest in $cachedManifests){
-    if ($null -ne $cachedManifest.productVersion){    
+  foreach ($CachedManifest in $CachedManifests){
+    if ($Null -ne $CachedManifest.productVersion){    
       
-      if ($cachedManifest.productVersion.indexOf($vcfProductVersion) -gt -1){
+      if ($CachedManifest.productVersion.indexOf($VcfProductVersion) -gt -1){
        
-        foreach ($bundle in $cachedManifest.bundleElements){
+        foreach ($Bundle in $CachedManifest.bundleElements){
           
-          $bundleElements += $bundle
+          $BundleElements += $Bundle
         }
       }
     }
   }
-
-  return get-UniqueBundleElementNames($bundleElements)
+  return Get-UniqueBundleElementNames($BundleElements)
 }
 
-Export-ModuleMember get-bundleSoftwareTypes
+Export-ModuleMember Get-BundleSoftwareTypes
 
-function get-DownloadUrls {
+
+function Get-DownloadUrls {
   param (
     [parameter(Position=1, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
-    [psobject[]]$bundles
+    [psobject[]]$Bundles
   )
   
   BEGIN{}
   PROCESS{
-    $manifestUrlPrefix = "https://depot.vmware.com/PROD2/evo/vmw/manifests/"
-    $bundleUrlPrefix = "https://depot.vmware.com/PROD2/evo/vmw/bundles/"
+    $ManifestUrlPrefix = "https://depot.vmware.com/PROD2/evo/vmw/manifests/"
+    $BundleUrlPrefix = "https://depot.vmware.com/PROD2/evo/vmw/bundles/"
 
     
-    $bundleNumber = $bundles.tarfile.Split(".")[0]
+    $BundleNumber = $Bundles.tarfile.Split(".")[0]
     
-    $manifestUrl = $manifestUrlPrefix + $bundleNumber + ".manifest"
-    $sigUrl = $manifestUrl + ".sig"
-    $bundleUrl = $bundleUrlPrefix + $bundleNumber + ".tar"
+    $ManifestUrl = $ManifestUrlPrefix + $BundleNumber + ".manifest"
+    $SigUrl = $ManifestUrl + ".sig"
+    $BundleUrl = $BundleUrlPrefix + $BundleNumber + ".tar"
 
-    #$bundleURL not returned for testing only download functionality
-    return @($manifestUrl, $sigUrl)#, $bundleUrl)
+    #$BundleURL not returned for testing only download functionality
+    return @($ManifestUrl, $SigUrl)#, $BundleUrl)
     
   }
   END{}
 }
-Export-ModuleMember get-bundleSoftwareTypes
+Export-ModuleMember Get-BundleSoftwareTypes
 
-function download-bundle {
+
+function Start-BundleDownload {
   param (
     [parameter(Position=1, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
-    [psobject[]]$bundles,
+    [psobject[]]$Bundles,
     [System.Management.Automation.PSCredential]
     $Credential = $(Get-Credential -Message "Enter your my.vmware.com credentials" ),
-    [string]$destination,
+    [string]$Destination,
     [string]$ProxyAuthentication,
     [string[]]$ProxyBypass,
     [System.Management.Automation.PSCredential]
@@ -189,13 +190,13 @@ function download-bundle {
     
   BEGIN{}
   PROCESS{
-    $urls = $bundles | get-DownloadUrls
+    $urls = $Bundles | Get-DownloadUrls
     foreach($url in $urls){
       write-host $url
-      Start-BitsTransfer -Credential $Credential -TransferType Download -Authentication Basic -Destination $destination -Source $url `
+      Start-BitsTransfer -Credential $Credential -TransferType Download -Authentication Basic -Destination $Destination -Source $url `
         -ProxyAuthentication $ProxyAuthentication -ProxyBypass $ProxyBypass -ProxyList $ProxyList -ProxyCredential $ProxyCredential -ProxyUsage $ProxyUsage
     }
   }
   END{}
 }
-Export-ModuleMember download-bundle
+Export-ModuleMember Start-BundleDownload

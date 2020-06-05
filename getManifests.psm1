@@ -14,183 +14,178 @@
 
  .Example
    # Build / Update 
-   $cred = get-credentials
-   build-cache -credentials $cred -cachefile c:\manifests.cache
+   $Cred = get-credentials
+   Build-Cache -credentials $Cred -cachefile c:\manifests.cache
    
 #>
 
+
 function Get-NewBundleNames {
   param (
-    $manifests,
-    $newIDs
+    $Manifests,
+    $NewIDs
   )
 
-  $bundleNames = @()
+  $BundleNames = @()
 
-  foreach ($manifest in $manifests){
-    $bundleID = Get-BundleID -manifest $manifest
-    if ($newIDs.IndexOf($bundleID) -ge 0){
-      $bundleName = Get-BundleName -manifest $manifest
-      $bundleNames += $bundleName
+  foreach ($Manifest in $Manifests){
+    $BundleID = Get-BundleID -manifest $Manifest
+    if ($NewIDs.IndexOf($BundleID) -ge 0){
+      $BundleName = Get-BundleName -manifest $Manifest
+      $BundleNames += $BundleName
     }
   }
-  return $bundleNames
+  return $BundleNames
 }
+
 
 function Get-BundleName {
   param (
-    $manifest
+    $Manifest
   )
   
-  $pos = $manifest.IndexOf("bundle")
-  $rightPart = $manifest.Substring($pos)
-  return $rightPart.Trim()
-
+  $Pos = $Manifest.IndexOf("bundle")
+  $RightPart = $Manifest.Substring($Pos)
+  return $RightPart.Trim()
 }
+
 
 function Get-BundleNames {
   param (
-    $manifests
+    $Manifests
   )
 
-  $bundleNames = @()
+  $BundleNames = @()
 
-  foreach ($manifest in $manifests){
-    $bundleNames += Get-BundleName -manifest $manifest
+  foreach ($Manifest in $Manifests){
+    $BundleNames += Get-BundleName -manifest $Manifest
   }
-  return $bundleNames
+  return $BundleNames
 }
+
 
 function Get-BundleIDs {
   param (
-    $manifests
+    $Manifests
   )
 
-  $bundleIDs = @()
+  $BundleIDs = @()
 
-  foreach ($manifest in $manifests){
-    $bundleIDs += Get-BundleID($manifest)
+  foreach ($Manifest in $Manifests){
+    $BundleIDs += Get-BundleID($Manifest)
   }
-
-  return $bundleIDs
-
+  return $BundleIDs
 }
+
 
 function Get-BundleID {
   param (
-    $manifest
+    $Manifest
   )
 
-  $pos = $manifest.IndexOf("bundle")
-  $leftpart = $manifest.Substring(0, ($pos-1))
-  return $leftpart.Trim()
-  
+  $Pos = $Manifest.IndexOf("bundle")
+  $Leftpart = $Manifest.Substring(0, ($Pos-1))
+  return $Leftpart.Trim() 
 }
+
 
 function Get-BundleDetails {
   param (
-    $bundleNames,
-    $manifestUrl,
-    [System.Management.Automation.PSCredential]$credentials
+    $BundleNames,
+    $ManifestUrl,
+    [System.Management.Automation.PSCredential]$Credentials
   )
 
-  $manifests = @()
-  foreach ($bundleName in $bundleNames){
-    $uri = $manifestUrl + $bundleName
-    $response = Invoke-WebRequest -Uri $uri -Credential $credentials
-    $manifests += $response.content
+  $Manifests = @()
+  foreach ($BundleName in $BundleNames){
+    $uri = $ManifestUrl + $BundleName
+    $Response = Invoke-WebRequest -Uri $uri -Credential $Credentials
+    $Manifests += $Response.content
   }
-  return $manifests
+  return $Manifests
 }
+
 
 function Get-CachedBundleIDs {
   param (
-  $cachedManifests
+  $CachedManifests
 )
 
-  $bundleIDs = @()
-  foreach ($manifest in $cachedManifests){
-    $bundleIDs += $manifest.bundleId
+  $BundleIDs = @()
+  foreach ($Manifest in $CachedManifests){
+    $BundleIDs += $Manifest.bundleId
   }
-
-  return $bundleIDs
-
+  return $BundleIDs
 }
 
 function Get-NewBundleIDs {
   param (
-    $manifests,
-    $cachedManifests
+    $Manifests,
+    $CachedManifests
   )
 
-  $cachedBundleIDs = Get-CachedBundleIDs -cachedManifests $cachedManifests
-  $remoteBundleIDs = Get-BundleIDs -manifests $manifests
-
-  $newIDs = Compare-Object -ReferenceObject $cachedBundleIDs -DifferenceObject $remoteBundleIDs -PassThru
-
- return $newIDs
-  
+  $CachedBundleIDs = Get-CachedBundleIDs -cachedManifests $CachedManifests
+  $RemoteBundleIDs = Get-BundleIDs -manifests $Manifests
+  $NewIDs = Compare-Object -ReferenceObject $CachedBundleIDs -DifferenceObject $RemoteBundleIDs -PassThru
+  return $NewIDs
 }
 
 
-function build-cache {
+function Build-Cache {
   [CmdletBinding()]
   param(
     [System.Management.Automation.PSCredential]
     $Credential = $(Get-Credential -Message "Enter your my.vmware.com credentials" ),
     [Parameter(Mandatory=$true)]
-    [string]$cacheFile
+    [string]$CacheFile
   )
   
   $indexUrl = "https://depot.vmware.com/PROD2/evo/vmw/index.v3"
-  $manifestUrl = "https://depot.vmware.com/PROD2/evo/vmw/manifests/"
+  $ManifestUrl = "https://depot.vmware.com/PROD2/evo/vmw/manifests/"
   $indexResponse = Invoke-WebRequest -Uri $indexUrl -Credential $Credential
-  $manifests = $indexResponse.content -split "`n" | % { $_.trim() }
+  $Manifests = $indexResponse.content -split "`n" | % { $_.trim() }
 
-  if (!(Test-Path $cacheFile)) 
-  {
+  if (!(Test-Path $CacheFile)){
     write-host "creating cache file"
-    New-Item $cacheFile -ItemType File
-    $newManifestNames = Get-BundleNames -manifests $manifests
-    $cachedManifests = @()
+    New-Item $CacheFile -ItemType File
+    $NewManifestNames = Get-BundleNames -manifests $Manifests
+    $CachedManifests = @()
   }
-  else # Get content from file
-  {
-    $cachedManifests = Get-Content -Path $cacheFile | ConvertFrom-Json
+  else{ # Get content from file
+    $CachedManifests = Get-Content -Path $CacheFile | ConvertFrom-Json
     
-    if ($null -eq $cachedManifests) # Handle if file is empty
+    if ($Null -eq $CachedManifests) # Handle if file is empty
     {
-      $cachedManifests = @() 
-      $newManifestNames = Get-BundleNames -manifests $manifests
+      $CachedManifests = @() 
+      $NewManifestNames = Get-BundleNames -manifests $Manifests
     }
     else 
     {
-      $newManifestIDs = Get-NewBundleIDs -manifests $manifests -cachedManifests $cachedManifests
-      if ($null -eq $newManifestIDs)
+      $NewManifestIDs = Get-NewBundleIDs -manifests $Manifests -cachedManifests $CachedManifests
+      if ($Null -eq $NewManifestIDs)
       {
         Write-Host "No new bundles found"
         Exit
       }
-      $newManifestNames = Get-NewBundleNames -manifests $manifests -newIds $newManifestIDs
+      $NewManifestNames = Get-NewBundleNames -manifests $Manifests -newIds $NewManifestIDs
     }
   }
 
-  if (!($cachedManifests -is [array]))
-  {
-    $cachedManifests = @($cachedManifests)
+  if (!($CachedManifests -is [array])){
+    $CachedManifests = @($CachedManifests)
   }
 
   $i = 1
-  foreach ($bundleName in $newManifestNames){
-    $uri = $manifestUrl + $bundleName
-    Write-Progress -Id 1 -Activity "Total Entries Found: $($newManifestNames.Count)" -PercentComplete (($i/$newManifestNames.Count)*100) -Status 'Getting Manifests'
+  foreach ($BundleName in $NewManifestNames){
+    $uri = $ManifestUrl + $BundleName
+    Write-Progress -Id 1 -Activity "Total Entries Found: $($NewManifestNames.Count)" -PercentComplete (($i/$NewManifestNames.Count)*100) -Status 'Getting Manifests'
     
     try{
-    $response = Invoke-WebRequest -Uri $uri -Credential $credential
-    $obj = ConvertFrom-Json $response.content
+    $Response = Invoke-WebRequest -Uri $uri -Credential $Credential
+    $Obj = ConvertFrom-Json $Response.content
 
-    $cachedManifests += $obj 
-    Set-Content -Path $cacheFile -Value (ConvertTo-Json $cachedManifests -Depth 5)
+    $CachedManifests += $Obj 
+    Set-Content -Path $CacheFile -Value (ConvertTo-Json $CachedManifests -Depth 5)
     $i ++
     }catch{
       
@@ -198,5 +193,4 @@ function build-cache {
   }
 
 }
-
-Export-ModuleMember -Function 'build-cache'
+Export-ModuleMember -Function 'Build-Cache'
