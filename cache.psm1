@@ -180,6 +180,7 @@ function Start-BundleDownload {
     [System.Management.Automation.PSCredential]
     $Credential = $(Get-Credential -Message "Enter your my.vmware.com credentials" ),
     [string]$Destination,
+    [switch]$SpecifyProxy,
     [string]$ProxyAuthentication,
     [string[]]$ProxyBypass,
     [System.Management.Automation.PSCredential]
@@ -188,15 +189,30 @@ function Start-BundleDownload {
     [string]$ProxyUsage
   )
     
-  BEGIN{}
+  BEGIN{ 
+    $DestArray = @()
+  }
   PROCESS{
     $urls = $Bundles | Get-DownloadUrls
-    foreach($url in $urls){
-      write-host $url
-      Start-BitsTransfer -Credential $Credential -TransferType Download -Authentication Basic -Destination $Destination -Source $url `
-        -ProxyAuthentication $ProxyAuthentication -ProxyBypass $ProxyBypass -ProxyList $ProxyList -ProxyCredential $ProxyCredential -ProxyUsage $ProxyUsage
+    for ($i = 0; $i -lt $urls.Count; $i++){
+      $DestArray += $Destination
+    }
+    write-host $urls.Count
+    write-host $DestArray.count
+  }
+  END{
+    if($SpecifyProxy){
+      Start-BitsTransfer -Credential $Credential -TransferType Download -Authentication Basic -Destination $DestArray -Source $Urls `
+      -ProxyAuthentication $ProxyAuthentication -ProxyBypass $ProxyBypass -ProxyList $ProxyList -ProxyCredential $ProxyCredential -ProxyUsage $ProxyUsage
+    }else{
+      Start-BitsTransfer -Credential $Credential -TransferType Download -Authentication Basic -Destination $DestArray -Source $Urls
     }
   }
-  END{}
 }
 Export-ModuleMember Start-BundleDownload
+
+
+Function Convert-FromUnixDate ($UnixDate) {
+  [timezone]::CurrentTimeZone.ToLocalTime(([datetime]'1/1/1970').AddMilliseconds($UnixDate))
+}
+Export-ModuleMember Convert-FromUnixDate

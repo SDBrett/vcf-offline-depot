@@ -89,23 +89,6 @@ function Get-BundleID {
 }
 
 
-function Get-BundleDetails {
-  param (
-    $BundleNames,
-    $ManifestUrl,
-    [System.Management.Automation.PSCredential]$Credentials
-  )
-
-  $Manifests = @()
-  foreach ($BundleName in $BundleNames){
-    $uri = $ManifestUrl + $BundleName
-    $Response = Invoke-WebRequest -Uri $uri -Credential $Credentials
-    $Manifests += $Response.content
-  }
-  return $Manifests
-}
-
-
 function Get-CachedBundleIDs {
   param (
   $CachedManifests
@@ -142,7 +125,7 @@ function Build-Cache {
   
   $indexUrl = "https://depot.vmware.com/PROD2/evo/vmw/index.v3"
   $ManifestUrl = "https://depot.vmware.com/PROD2/evo/vmw/manifests/"
-  $indexResponse = Invoke-WebRequest -Uri $indexUrl -Credential $Credential
+  $indexResponse = Invoke-WebRequest -Uri $indexUrl -Credential $Credential -SessionVariable 'Session'
   $Manifests = $indexResponse.content -split "`n" | % { $_.trim() }
 
   if (!(Test-Path $CacheFile)){
@@ -181,7 +164,7 @@ function Build-Cache {
     Write-Progress -Id 1 -Activity "Total Entries Found: $($NewManifestNames.Count)" -PercentComplete (($i/$NewManifestNames.Count)*100) -Status 'Getting Manifests'
     
     try{
-    $Response = Invoke-WebRequest -Uri $uri -Credential $Credential
+    $Response = Invoke-WebRequest -Uri $uri -Credential $Credential -SessionVariable $Session
     $Obj = ConvertFrom-Json $Response.content
 
     $CachedManifests += $Obj 
