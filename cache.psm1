@@ -178,7 +178,13 @@ function download-bundle {
     [psobject[]]$bundles,
     [System.Management.Automation.PSCredential]
     $Credential = $(Get-Credential -Message "Enter your my.vmware.com credentials" ),
-    [string]$destination
+    [string]$destination,
+    [string]$ProxyAuthentication,
+    [string[]]$ProxyBypass,
+    [System.Management.Automation.PSCredential]
+    $ProxyCredential,
+    [Uri[]]$ProxyList,
+    [string]$ProxyUsage
   )
     
   BEGIN{}
@@ -186,8 +192,10 @@ function download-bundle {
     $urls = $bundles | get-DownloadUrls
     foreach($url in $urls){
       write-host $url
-      Start-BitsTransfer -Credential $Credential -TransferType Download -Authentication Basic -Destination $destination -Source $url
+      Start-BitsTransfer -Credential $Credential -TransferType Download -Authentication Basic -Destination $destination -Source $url `
+        -ProxyAuthentication $ProxyAuthentication -ProxyBypass $ProxyBypass -ProxyList $ProxyList -ProxyCredential $ProxyCredential -ProxyUsage $ProxyUsage
     }
   }
   END{}
 }
+Export-ModuleMember download-bundle
